@@ -51,7 +51,6 @@ fn main() {
     rl_camera.zoom = 1.0;
     // TODO: Get the current monitor position in virtual space and put the camera there
     let mut delta_scale = 0f64;
-    let mut scale_pivot = rl.get_mouse_position();
     let mut velocity = Vector2::default();
     let mut spotlight_radius_multiplier = 1.0;
     let mut spotlight_radius_multiplier_delta = 0.0;
@@ -73,8 +72,11 @@ fn main() {
     cursor_position_uniform_location = spotlight_shader.get_shader_location("cursorPosition");
     spotlight_radius_multiplier_uniform_location =
         spotlight_shader.get_shader_location("spotlightRadiusMultiplier");
+
+    let mut enable_spotlight = false;
     while !rl.window_should_close() {
-        if rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_RIGHT) {
+        let mut scale_pivot = rl.get_mouse_position();
+        if rl.is_key_pressed(KeyboardKey::KEY_Q) {
             break;
         }
         #[cfg(feature = "dev")]
@@ -88,27 +90,27 @@ fn main() {
             spotlight_radius_multiplier_uniform_location =
                 spotlight_shader.get_shader_location("spotlightRadiusMultiplier");
         }
-        let enable_spotlight = rl.is_key_down(KeyboardKey::KEY_LEFT_CONTROL);
+        enable_spotlight ^= rl.is_key_pressed(KeyboardKey::KEY_F);
         let scrolled_amount = rl.get_mouse_wheel_move_v().y;
-        if rl.is_key_pressed(KeyboardKey::KEY_LEFT_CONTROL) {
+        if rl.is_key_pressed(KeyboardKey::KEY_F) {
             spotlight_radius_multiplier = 5.0;
             spotlight_radius_multiplier_delta = -15.0;
         }
         if scrolled_amount != 0.0 {
             match (
                 enable_spotlight,
-                rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT),
+                rl.is_key_down(KeyboardKey::KEY_LEFT_CONTROL),
             ) {
                 (_, false) => {
-                    delta_scale += scrolled_amount as f64;
+                    delta_scale += scrolled_amount as f64 * 2.0;
                 }
                 (true, true) => {
-                    spotlight_radius_multiplier_delta -= scrolled_amount as f64;
+                    spotlight_radius_multiplier_delta += scrolled_amount as f64 * 4.0;
                 }
                 _ => {}
             }
-            scale_pivot = rl.get_mouse_position();
         }
+        scale_pivot = rl.get_mouse_position();
         if delta_scale.abs() > 0.5 {
             let p0 = scale_pivot / rl_camera.zoom;
             rl_camera.zoom = (rl_camera.zoom as f64 + delta_scale * rl.get_frame_time() as f64)
